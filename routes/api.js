@@ -25,10 +25,7 @@ router.get('/users', async (req, res, next) => {
   }
 })
 
-router.post('/add', async (req, res, next) => {
-  let date
-  (req.body.date) ? (date = new Date(req.body.date)) : (date = new Date())
-  
+router.post('/add', async (req, res, next) => {  
   try {
     const user = await User.findById(req.body.userId)
     if (!user)
@@ -37,16 +34,23 @@ router.post('/add', async (req, res, next) => {
     const exercise = {
       description: req.body.description,
       duration: req.body.duration,    
-      date,
       user: user._id
-    }   
+    }
+    
+    req.body.date ? exercise.date = req.body.date : ''
     
     const createdExercise = await Exercise.create(exercise)  
     
     user.exercises.push(createdExercise)
     await user.save()
     
-    res.json(createdExercise)
+    res.json({
+      _id: user._id,
+      username: user.username,
+      description: createdExercise.description,
+      duration: createdExercise.duration,
+      date: createdExercise.date.toDateString(),      
+    })
   } catch(err) {
     next(err)
   }
@@ -79,9 +83,13 @@ router.get('/log', async (req, res, next) => {
       _id: user._id,
       username: user.username,
       count: user.exercises.length,
-      log: user.exercises
-    }
-        
+      log: user.exercises.map(exercise => ({
+        description: exercise.description,
+        duration: exercise.duration,          
+        date: exercise.date.toDateString() 
+      }))
+    }   
+    
     res.json(response)    
   } catch (err) {
     next(err)
